@@ -17,7 +17,7 @@ from peft import (
     PeftModel,
     get_peft_model
 )
-from datasets import Dataset
+from datasets import Dataset, load_dataset
 import evaluate
 
 RANDOM_STATE = 42
@@ -181,8 +181,8 @@ class LORAEngineGeneration(object):
         self.project_path = project_path
         self.adapter_path = adapter_path
         self.device=device
-        self.validation_dataset = self.load_datasets(validation_dataset, n_val_samples)
-        self.train_dataset = self.load_datasets(train_dataset_name, n_train_samples)
+        self.validation_dataset = self.load_datasets_(validation_dataset, n_val_samples, split= "test")
+        self.train_dataset = self.load_datasets_(train_dataset_name, n_train_samples)
         print(len(self.train_dataset))
         print(len(self.validation_dataset))
         print("*"*50)
@@ -213,13 +213,17 @@ class LORAEngineGeneration(object):
         self.model 
         self.finetuned_config = LoraConfig.from_pretrained(pretrained_model_name_or_path=self.adapter_path)
 
-    def load_datasets(self, dataset_name, n_samples):
+    def load_datasets_(self, dataset_name, n_samples, split = "train"):
         if dataset_name.endswith('.hf'):
             dataset_ = Dataset.load_from_disk(f"{self.project_path}/datasets/medical_datasets/{dataset_name}")
         elif dataset_name.endswith('.json'):
             dataset_ = Dataset.from_json(f"{self.project_path}/datasets/medical_datasets/{dataset_name}")
         else:
-            raise ValueError("Invalid dataset name")
+            try:
+                dataset_ = load_dataset(dataset_name, split=split)
+            except Exception as e:
+                print(2)
+                raise ValueError("Invalid dataset name")
         
         dataset_ = dataset_.shuffle(seed=RANDOM_STATE)
         
@@ -276,6 +280,7 @@ class LORAEngineGeneration(object):
         self.model.eval()
         tr_grad_dict = {}
         for step, batch in enumerate(tqdm(train_dataloader_stochastic)):
+            print(f"Computing gradients for batch {step+1}/{len(train_dataloader_stochastic)}")
             self.model.zero_grad() # zeroing out gradient
             batch['labels'] = batch['input_ids']
             batch.to(self.device)
@@ -293,9 +298,7 @@ class LORAEngineGeneration(object):
                 else:
                     pass
             tr_grad_dict[step]=grad_dict
-            # print(tr_grad_dict)
-            torch.save(tr_grad_dict, "tenspr.pt")
-            sys.exit()
+            print(f"Finished computing gradients for batch {step+1}")
             del grad_dict
             
         val_grad_dict = {}
