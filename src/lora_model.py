@@ -176,10 +176,13 @@ class LORAEngineGeneration(object):
                 n_val_samples = None,
                 device="cuda",
                 load_in_8bit=False,
-                load_in_4bit=False):
+                load_in_4bit=False,
+                seq_len = 256):
         self.base_path = base_path
         self.project_path = project_path
         self.adapter_path = adapter_path
+        self.seq_len = seq_len
+        print("Sequence Length is: ", self.seq_len)
         self.device=device
         self.validation_dataset = self.load_datasets_(validation_dataset, n_val_samples, split= "test")
         self.train_dataset = self.load_datasets_(train_dataset_name, n_train_samples)
@@ -238,7 +241,7 @@ class LORAEngineGeneration(object):
             [instr + "\n" + input_ for instr, input_ in zip(x["instruction"], x["input"])] , 
             truncation=True, 
             padding=True, 
-            max_length=256,  # TODDO change into the real size that was used
+            max_length=self.seq_len,  # TODDO change into the real size that was used
             return_tensors="pt" # text should be more appropritate
         ).to(self.device)
 
@@ -246,7 +249,7 @@ class LORAEngineGeneration(object):
             x["prompt"] , 
             truncation=True, 
             padding=True, 
-            max_length=256, 
+            max_length=self.seq_len, 
             return_tensors="pt" # text should be more appropritate
         ).to(self.device)
         
