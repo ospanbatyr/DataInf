@@ -70,14 +70,14 @@ def initialize_lora_engine(args):
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Influence Function Analysis")
-    parser.add_argument("--base_path", type=str, default="mistralai/Mistral-7B-v0.1", help="Base path for the model")
-    parser.add_argument("--adapter_path", type=str, default="adapters/mistral-lora-sft-only", help="Adapters path")
+    parser.add_argument("--base_path", type=str, default="meta-llama/Llama-2-7b-hf", help="Base path for the model")
+    parser.add_argument("--adapter_path", type=str, default="adapters/llama2-stage2-eval_train-it", help="Adapters path")
     parser.add_argument("--train_dataset", type=str, default="open-platypus_medqa-instruction-train_merged_no_prompt.json", help="Train dataset filename")
     parser.add_argument("--validation_dataset", type=str, default="eval_datasets/medqa_usmle.json", help="Validation dataset filename")
     parser.add_argument("--n_train_samples", type=int, default=400, help="Number of samples from the training dataset")
     parser.add_argument("--n_val_samples", type=int, default=100, help="Number of samples from the validation dataset")
     parser.add_argument("--random_state", type=int, default=42, help="Random state for reproducibility")
-    parser.add_argument("--seq_len", type=int, default=4096, help="Maximum Sequence Length")
+    parser.add_argument("--seq_len", type=int, default=512, help="Maximum Sequence Length")
     args = parser.parse_args()
     warnings.filterwarnings("ignore")
     
@@ -97,7 +97,7 @@ Answer:"""
 
     # Generate
     generate_ids = lora_engine.model.generate(input_ids=inputs.input_ids, 
-                                            max_length=128,
+                                            max_length=512,
                                             pad_token_id=lora_engine.tokenizer.eos_token_id)
     output = lora_engine.tokenizer.batch_decode(
         generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True
@@ -125,7 +125,7 @@ Answer:"""
     influence_engine.compute_hvps()
     print("Computing now the influence scores")
     influence_engine.compute_IF()
-    influence_engine.IF_dict['proposed'].to_csv("proposed _scores_no_prompt.csv", index= False)
+    influence_engine.IF_dict['proposed'].to_csv("proposed_scores_no_prompt.csv", index= False)
 
     print("Computation of the influence scores is done.")
     print("Conmputing now the most and least influencing examples")
@@ -153,13 +153,15 @@ Answer:"""
     df = pd.DataFrame(df_data)
 
     # Save to JSON and CSV formats
-    json_file_path = '/kuacc/users/hpc-rbech/hpc_run/DataInf/src/influential_samples_top5_no_prompt.json'
-    csv_file_path = '/kuacc/users/hpc-rbech/hpc_run/DataInf/src/influential_samples_top5_no_prompt.csv'
+    import os
+    import os.path as osp
+    json_file_path = osp.join(os.getcwd(), 'influential_samples_top5_no_prompt.json')
+    csv_file_path = osp.join(os.getcwd(), "influential_samples_top5_no_prompt.csv")
 
     df.to_json(json_file_path, orient='records', lines=True)
     df.to_csv(csv_file_path, index=False)
     print("Saved dataframe with top 5 most and least influential training samples")
 
     # Also save the indices of these samples if needed
-    most_influential_data_points_proposed.to_csv('/kuacc/users/hpc-rbech/hpc_run/DataInf/src/most_influential_data_points_proposed_top5_no_prompt.csv', index=False)
-    least_influential_data_points_proposed.to_csv('/kuacc/users/hpc-rbech/hpc_run/DataInf/src/least_influential_data_points_proposed_top5_no_prompt.csv', index=False)
+    most_influential_data_points_proposed.to_csv(osp.join(os.getcwd(), 'most_influential_data_points_proposed_top5_no_prompt.csv'), index=False)
+    least_influential_data_points_proposed.to_csv(osp.join(os.getcwd(), 'least_influential_data_points_proposed_top5_no_prompt.csv'), index=False)

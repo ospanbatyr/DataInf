@@ -29,11 +29,12 @@
 
 #SBATCH --job-name=JupiterNotebook
 #SBATCH --nodes 1
+#SBATCH --exclude ai23
 #SBATCH --ntasks-per-node=4
 #SBATCH --partition=ai
 #SBATCH --account=ai
 #SBATCH --qos=ai
-#SBATCH --mem=64G
+#SBATCH --mem=200G
 #SBATCH --gres=gpu:nvidia_a40:1 
 #SBATCH --time=1-0:0:0
 #SBATCH --output=jupyter_logs/playground-%J.log
